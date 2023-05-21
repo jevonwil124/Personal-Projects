@@ -9,10 +9,12 @@ body{
     background:#222;
 
 }
+
 .card{
     width: 90%;
     max-width: 470px;
-    background: linear-gradient(135deg, #00feba,#5b548a);
+    background-image:linear-gradient(rgba(9, 123, 132, 0.9),rgba(75, 96, 214, 0.727)),url(clouds-heaven.gif);
+    background-size: cover;
     color: #fff;
     margin: 100px auto 0;
     border-radius: 20px;
