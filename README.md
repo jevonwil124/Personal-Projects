@@ -3,22 +3,18 @@ This repository is for all my personal projects that will be created for resume 
 
 Projects:
 
-**Opera Malware**:
-This script is designed to compromise systems, steal sensitive information, and provide a persistent point of access for attackers. 
+**Cybersecurity Attack Script: Opera-Triggered Credential Harvester**:
+The Python script represents a significant cybersecurity threat. It's designed to automate a series of malicious actions on a target system, effectively compromising its security. Here's how:
 
-I've created a **high-risk** piece of malware with the following characteristics:
+**Unauthorized Access**: The script waits for a user to open the Opera browser, indicating potential user activity. It then proceeds to change the user's password without authorization.
 
-Trojan Horse: It disguises itself to trick users into running it.
+**Credential Theft**: The script captures the newly changed credentials (username and password) and saves them to a log file.
 
-Password Stealer: It steals user credentials.
+**Data Exfiltration**: The script then attempts to send this log file containing the stolen credentials to a remote server, enabling the attacker to gain access to the compromised account.
 
-Backdoor: It creates a way for the attacker to regain access.
+**System Disruption**: Finally, the script attempts to shut down the computer, further disrupting the user's activity and potentially covering the attacker's tracks.
 
-Remote Access Trojan (RAT): It enables potential remote control of the compromised system.
-
-System Disruption: It can shut down the computer.
-
-This was made for educational purposes, and is/will not be used for any malicious act or criminal activities. Use with caution.
+In essence, the script automates key stages of a cyberattack, from gaining unauthorized access to stealing credentials and exfiltrating data.
 
 
 **Weather App**:
