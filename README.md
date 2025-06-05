@@ -7,9 +7,9 @@ Projects:
   
 # OpenVPN Server & Client Setup Guide
 This guide details the steps taken to set up a personal OpenVPN server on Debian 12 and configure a client on a Debian 12 KDE Plasma desktop. This setup allows for secure, encrypted internet traffic routing through your home network, effectively creating your own private VPN.
-**1. Introduction**
+# 1. Introduction
    A Virtual Private Network (VPN) creates a secure tunnel over an insecure network (like the internet), allowing you to access resources as if you were directly connected to the private network. This guide focuses on OpenVPN, a robust and flexible open-source VPN solution, providing you with full control over your privacy and network access. Goal: To establish a working OpenVPN server on a dedicated Debian 12 machine (your_server_internal_ip - e.g., 186.65.2.788) and connect to it from another Debian 12 KDE Plasma client, routing all client internet traffic through the server.
-**2. Prerequisites**
+# 2. Prerequisites
   Before you begin, ensure you have:
     Two Debian 12 Machines: 
       Server: A dedicated machine (e.g., a Raspberry Pi, old PC, or VM) with a static internal IP address (e.g., your_server_internal_ip). This machine should be connected to your home network.
@@ -61,66 +61,66 @@ Create the server configuration file.Create the configuration file:
 `sudo nano /etc/openvpn/server/server.conf`
 
 Paste the following content into the file:
-`# OpenVPN Server Configuration
-# Running on Debian 12
-
-# Protocol & Port: Using TCP on port 8443 for better firewall traversal.
-# This was changed from UDP 1194 due to Verizon Fios router issues.
-port 8443
-proto tcp
-dev tun
-
-# PKI Configuration
-# Certificate Authority (CA) certificate
-ca /etc/openvpn/server/ca.crt
-# Server certificate
-cert /etc/openvpn/server/server.crt
-# Server private key
-key /etc/openvpn/server/server.key
-# Diffie-Hellman parameters for key exchange
-dh /etc/openvpn/server/dh.pem
-# TLS-Auth key for HMAC signature (extra layer of security)
-tls-auth /etc/openvpn/server/ta.key 0
-
-# Tunnel Network Configuration
-# VPN tunnel IP address range
-server 10.8.0.0 255.255.255.0
-# Push DNS servers to clients (Google DNS in this case)
-push "dhcp-option DNS 8.8.8.8"
-push "dhcp-option DNS 8.8.4.4"
-# Redirect all client traffic through the VPN
-push "redirect-gateway def1 bypass-dhcp"
-
-# Client-related settings
-# Allow clients to talk to each other (optional)
-client-to-client
-# Persist tunnel device and key, avoid some reinstalls
-persist-tun
-persist-key
-
-# Security & User
-# Run as a non-privileged user after initialization
-user nobody
-group nogroup
-
-# Logging & Verbosity
-status /var/log/openvpn/openvpn-status.log
-log /var/log/openvpn/openvpn.log
-verb 3 # Verbosity level (3 is good for production, 4 for debug)
-# Silence repeated messages
-mute 20
-
-# Compression (older method, optional, modern OpenVPN often uses --compress)
-# comp-lzo
-
-# Keepalive ensures connection stays alive
-keepalive 10 120
-
-# Cipher Configuration: IMPORTANT for client compatibility.
-# This was a crucial fix for client connection issues.
-# Specifies data ciphers the server will use.
-# Client must also support these or auto-negotiate compatible.
-data-cciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305`
+    `#OpenVPN Server Configuration
+     #Running on Debian 12
+    
+    #Protocol & Port: Using TCP on port 8443 for better firewall traversal.
+    #This was changed from UDP 1194 due to Verizon Fios router issues.
+    port 8443
+    proto tcp
+    dev tun
+    
+    #PKI Configuration
+    #Certificate Authority (CA) certificate
+    ca /etc/openvpn/server/ca.crt
+    #Server certificate
+    cert /etc/openvpn/server/server.crt
+    #Server private key
+    key /etc/openvpn/server/server.key
+    #Diffie-Hellman parameters for key exchange
+    dh /etc/openvpn/server/dh.pem
+    #TLS-Auth key for HMAC signature (extra layer of security)
+    tls-auth /etc/openvpn/server/ta.key 0
+    
+    #Tunnel Network Configuration
+    #VPN tunnel IP address range
+    server 10.8.0.0 255.255.255.0
+    #Push DNS servers to clients (Google DNS in this case)
+    push "dhcp-option DNS 8.8.8.8"
+    push "dhcp-option DNS 8.8.4.4"
+    #Redirect all client traffic through the VPN
+    push "redirect-gateway def1 bypass-dhcp"
+    
+    #Client-related settings
+    #Allow clients to talk to each other (optional)
+    client-to-client
+    #Persist tunnel device and key, avoid some reinstalls
+    persist-tun
+    persist-key
+    
+    #Security & User
+    #Run as a non-privileged user after initialization
+    user nobody
+    group nogroup
+    
+    #Logging & Verbosity
+    status /var/log/openvpn/openvpn-status.log
+    log /var/log/openvpn/openvpn.log
+    verb 3 # Verbosity level (3 is good for production, 4 for debug)
+    #Silence repeated messages
+    mute 20
+    
+    #Compression (older method, optional, modern OpenVPN often uses --compress)
+    #comp-lzo
+    
+    #Keepalive ensures connection stays alive
+    keepalive 10 120
+    
+    #Cipher Configuration: IMPORTANT for client compatibility.
+    #This was a crucial fix for client connection issues.
+    #Specifies data ciphers the server will use.
+    #Client must also support these or auto-negotiate compatible.
+    data-cciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305`
 
 Create the log directory:
 `sudo mkdir -p /var/log/openvpn/`
