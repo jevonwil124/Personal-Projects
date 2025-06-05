@@ -4,7 +4,7 @@ This repository is for all my personal projects that will be created for resume 
 Projects:
 
 <details> 
-<summary>**Cybersecurity Attack Script: Opera-Triggered Credential Harvester**</summary>
+<summary>***Cybersecurity Attack Script: Opera-Triggered Credential Harvester***</summary>
 
 This Python script appears to be designed for malicious activities, specifically targeting a system to change user passwords, log these new passwords, and then attempt to transmit them to a remote listener before restarting the computer and cleaning up the log file.
 
