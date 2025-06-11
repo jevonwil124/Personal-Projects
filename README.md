@@ -512,7 +512,9 @@ Consider lowering the resolution in the [Xvfb] section's param line in /etc/xrdp
 
 </details>
 
-<summary>***Cybersecurity Attack Script: Opera-Triggered Credential Harvester***</summary>
+<details>
+
+<summary>Cybersecurity Attack Script: Opera-Triggered Credential Harvester</summary>
 
 This Python script appears to be designed for malicious activities, specifically targeting a system to change user passwords, log these new passwords, and then attempt to transmit them to a remote listener before restarting the computer and cleaning up the log file.
 
