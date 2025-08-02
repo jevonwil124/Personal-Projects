@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import re
+import random # <--- NEW: Import the random module
 
 # Add the parent directory to the Python path to allow importing searcher.py
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -13,6 +14,18 @@ app = Flask(__name__)
 
 # Initialize the search engine
 search_engine_instance = SearchEngine()
+
+# --- NEW: Define LOCAL background images in Python ---
+# Make sure these filenames exist in your 'static' folder!
+LOCAL_BACKGROUND_IMAGES = [
+    "istockphoto-1455772765-640x640.jpg",
+    "tumblr_static_tumblr_static__focused_v3.gif",
+    "4ede5a33c5490195b2b17466ad26d124.gif",
+    "source.gif"  # Make sure you have this image in your static folder
+    # Add more local images here if you have them, e.g.:
+    # "another_background.png",
+    # "third_image.jpeg",
+]
 
 # HTML template for the search interface and results
 HTML_TEMPLATE = """
@@ -43,6 +56,8 @@ HTML_TEMPLATE = """
             justify-content: center; /* Center horizontally */
             align-items: center; /* Center vertically */
             min-height: 100vh; /* Full viewport height */
+            /* --- KEY CHANGE: background image set directly by Flask via background_url --- */
+            background-image: url('{{ background_url }}');
         }
 
         .container {
@@ -171,7 +186,7 @@ HTML_TEMPLATE = """
         .results-list li:hover {
             background: rgba(255, 255, 255, 0.06);
         }
-        
+
         .results-list li a {
             color: #a0c4ff;
             text-decoration: none;
@@ -255,9 +270,9 @@ HTML_TEMPLATE = """
 
         {% if results is not none %}
         <div class="filter-nav">
-            <a href="{{ url_for('search_results', query=query, filter='all') }}" class="{{ 'active' if current_filter == 'all' }}">All</a>
-            <a href="{{ url_for('search_results', query=query, filter='images') }}" class="{{ 'active' if current_filter == 'images' }}">Images</a>
-            <a href="{{ url_for('search_results', query=query, filter='videos') }}" class="{{ 'active' if current_filter == 'videos' }}">Videos</a>
+            <a href="{{ url_for('search_results', query=query, filter='all', bg=background_url) }}" class="{{ 'active' if current_filter == 'all' }}">All</a>
+            <a href="{{ url_for('search_results', query=query, filter='images', bg=background_url) }}" class="{{ 'active' if current_filter == 'images' }}">Images</a>
+            <a href="{{ url_for('search_results', query=query, filter='videos', bg=background_url) }}" class="{{ 'active' if current_filter == 'videos' }}">Videos</a>
         </div>
 
         <div class="results-container">
@@ -312,60 +327,56 @@ HTML_TEMPLATE = """
         {% endif %}
     </div>
 
-    <script>
-        // These are direct, working image URLs for your background.
-        const backgroundImages = [
-            'https://media.gettyimages.com/id/1469875556/video/4k-abstract-lines-background-loopable.jpg?s=640x640&k=20&c=oRhmLOFm1rQPZQSQrUqnd8eRd8LsoGLmiQS7nMIh-MU=', // Forest path
-            'https://cdn.pixabay.com/photo/2016/05/05/02/37/sunset-1373171_1280.jpg', // Sunset over mountains
-            'https://cdn.nimbusthemes.com/2017/09/09233341/Free-Nature-Backgrounds-Seaport-During-Daytime-by-Pexels.jpeg', // Milky Way
-            'https://wallpapers.com/images/hd/free-background-9yo0cfxevhv8jmhq.jpg'  // Snowy landscape
-        ];
-
-        function setRandomBackground() {
-            const randomIndex = Math.floor(Math.random() * backgroundImages.length);
-            document.body.style.backgroundImage = `url('${backgroundImages[randomIndex]}')`;
-        }
-
-        document.addEventListener('DOMContentLoaded', setRandomBackground);
-    </script>
-</body>
+    </body>
 </html>
 """
 
 @app.route('/')
 def home():
     """Renders the initial search page."""
-    return render_template_string(HTML_TEMPLATE, results=None, query="", current_filter="all")
+    # Select a random background image URL from your LOCAL_BACKGROUND_IMAGES
+    selected_bg_filename = random.choice(LOCAL_BACKGROUND_IMAGES)
+    background_url = url_for('static', filename=selected_bg_filename)
+
+    return render_template_string(HTML_TEMPLATE, results=None, query="", current_filter="all", background_url=background_url)
 
 @app.route('/search')
 def search_results():
     """Handles search queries and displays results with media, filtered by type."""
     user_query = request.args.get('query', '').strip()
     current_filter = request.args.get('filter', 'all')
+
+    # --- KEY CHANGE: Get the background URL from the request arguments if present ---
+    # This keeps the background image consistent across filters/searches
+    background_url = request.args.get('bg')
+
+    # If no background URL is in the arguments (e.g., initial search or direct /search access)
+    # or if it's somehow not a valid static URL, pick a new random one
+    if not background_url or not background_url.startswith('/static/'):
+        selected_bg_filename = random.choice(LOCAL_BACKGROUND_IMAGES)
+        background_url = url_for('static', filename=selected_bg_filename)
+
     results_to_display = []
 
     if user_query:
         raw_results = search_engine_instance.search(user_query)
-        
+
         for score, doc_id in raw_results:
-            # IMPORTANT: Ensure doc_id is string when fetching from document_map
             doc_info = search_engine_instance.document_map.get(str(doc_id))
 
             if doc_info:
-                # Explicitly convert score to float here, as it may come as a string
                 try:
                     score_float = float(score)
                 except ValueError:
-                    # Fallback if score is not a valid number (e.g., if it's "N/A")
-                    score_float = 0.0 
+                    score_float = 0.0
                 results_to_display.append((score_float, doc_info))
             else:
-                # This fallback should ideally not be hit if data is correctly indexed
                 results_to_display.append((0.0, {'url': f"Unknown Document (ID: {doc_id})", 'images': [], 'videos': []}))
     else:
         results_to_display = []
 
-    return render_template_string(HTML_TEMPLATE, results=results_to_display, query=user_query, current_filter=current_filter)
+    # Pass the determined background_url to the template
+    return render_template_string(HTML_TEMPLATE, results=results_to_display, query=user_query, current_filter=current_filter, background_url=background_url)
 
 if __name__ == '__main__':
     app.run(debug=True)

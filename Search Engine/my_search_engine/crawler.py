@@ -4,16 +4,19 @@ from urllib.parse import urljoin, urlparse
 import json
 import os
 import re
+import time # Import the time module
 
 class WebCrawler:
-    def __init__(self, start_urls, max_pages=50, max_depth=1):
+    def __init__(self, start_urls, max_pages=50, max_depth=1, delay_seconds=1): # Added delay_seconds parameter
         self.start_urls = start_urls
         self.max_pages = max_pages
         self.max_depth = max_depth
+        self.delay_seconds = delay_seconds # Store the delay
         self.visited_urls = set()
         self.documents = []
         self.session = requests.Session()
-        self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        # Updated User-Agent to a more recent Chrome version
+        self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
         self.output_dir = "crawled_data"
         os.makedirs(self.output_dir, exist_ok=True)
         self.documents_file = os.path.join(self.output_dir, "documents.json")
@@ -43,20 +46,38 @@ class WebCrawler:
             return True # No robots.txt or couldn't fetch, assume allowed
 
         # Simple robots.txt parsing: check for Disallow rules for any user-agent or our user-agent
+        # Note: self.headers['User-Agent'] might include full string, we need to handle this
+        # For simplicity, let's just check for '*' or a substring match
+        user_agent_short = self.headers['User-Agent'].split('/')[0].lower() # e.g., 'mozilla' or 'chrome'
+
+        disallow_rules = []
+        user_agent_block = False
+
         for line in robots_content.splitlines():
             line = line.strip()
             if line.lower().startswith("user-agent:"):
                 current_agent = line.split(':')[1].strip().lower()
-                if current_agent == '*' or current_agent == 'mozilla/5.0': # Check for generic or our specific UA
-                    pass # Continue to check Disallow rules for this agent
+                # Check if the current user-agent block applies to us
+                if current_agent == '*' or user_agent_short in current_agent:
+                    user_agent_block = True
                 else:
-                    continue # Skip rules for other agents
-
-            if line.lower().startswith("disallow:"):
+                    user_agent_block = False
+                disallow_rules = [] # Reset rules for new user-agent block
+            elif user_agent_block and line.lower().startswith("disallow:"):
                 disallowed_path = line.split(':')[1].strip()
-                if disallowed_path and urlparse(url).path.startswith(disallowed_path):
-                    print(f"Skipping {url} due to robots.txt")
-                    return False
+                disallow_rules.append(disallowed_path)
+            elif user_agent_block and line.lower().startswith("allow:"): # Handle allow rules, which override disallow
+                allowed_path = line.split(':')[1].strip()
+                # If an allow rule specifically allows a path that was previously disallowed, it overrides
+                # This simple parsing doesn't fully implement specificity, but it's a start
+                if allowed_path in disallow_rules:
+                    disallow_rules.remove(allowed_path) # Remove from disallow if explicitly allowed
+
+        path = urlparse(url).path
+        for disallowed_path in disallow_rules:
+            if disallowed_path and path.startswith(disallowed_path):
+                print(f"Skipping {url} due to robots.txt Disallow: {disallowed_path}")
+                return False
         return True
 
 
@@ -69,6 +90,7 @@ class WebCrawler:
             if current_url in self.visited_urls:
                 continue
 
+            # Ensure we respect robots.txt
             if not self._can_fetch(current_url):
                 continue
 
@@ -105,6 +127,7 @@ class WebCrawler:
                 
                 for iframe in soup.find_all('iframe', src=True):
                     iframe_src = iframe['src']
+                    # Simplified check for common video embeds. More robust regex might be needed for full coverage.
                     if 'youtube.com/embed/' in iframe_src or 'player.vimeo.com/video/' in iframe_src:
                         if urlparse(iframe_src).scheme in ['http', 'https']:
                             videos.append({'src': iframe_src, 'type': 'embed'})
@@ -143,6 +166,9 @@ class WebCrawler:
                 print(f"Error crawling {current_url}: {e}")
             except Exception as e:
                 print(f"An unexpected error occurred with {current_url}: {e}")
+            finally:
+                # --- NEW: Introduce a delay after each request (whether successful or not) ---
+                time.sleep(self.delay_seconds) 
 
         self._save_documents()
         print(f"\nCrawl finished.")
@@ -157,10 +183,26 @@ if __name__ == "__main__":
     # You can customize these starting URLs
     start_urls = [
         "https://www.python.org/",
-        "https://quotes.toscrape.com/",
         "https://www.nasa.gov/",
         "https://www.wikipedia.org/",
-        "https://www.bbc.com/news"
+        "https://www.bbc.com/news",
+        "https://stockx.com/", # This site is very aggressive with anti-bot measures.
+        "https://www.nbcnews.com/",
+        "https://www.reuters.com/",
+        "https://www.nytimes.com/",
+        "https://www.theguardian.com/",
+        "https://www.wired.com/",
+        "https://docs.python.org/3/",
+        "https://developer.mozilla.org/en-US/",
+        "https://github.com/",
+        "https://www.nationalgeographic.com/",
+        "https://www.smithsonianmag.com/",
+        "https://www.khanacademy.org/",
+        "https://www.allrecipes.com/",
+        "https://www.gutenberg.org/",
+
     ]
-    crawler = WebCrawler(start_urls=start_urls, max_pages=150, max_depth=2)
+    # Increased max_pages and max_depth as per previous discussions
+    # Added delay_seconds to make the crawler more polite and potentially avoid 403 errors
+    crawler = WebCrawler(start_urls=start_urls, max_pages=1000, max_depth=5, delay_seconds=2) # Increased delay to 2 seconds
     crawler.crawl()
