@@ -56,26 +56,26 @@ syscall_handler_asm:
     add esp, 8                  ; Clean up stack
     iret
 
-; Example of a proper stack switch
+; --- Corrected switch_to_task in boot.s ---
 switch_to_task:
     push ebp
     mov ebp, esp
+
     ; Save old ESP
     mov eax, [ebp+8]  ; first arg: &(old_task->esp)
     mov [eax], esp
+
     ; Load new ESP
     mov esp, [ebp+12] ; second arg: next_task->esp
+
     ; Load new Page Directory
     mov eax, [ebp+16] ; third arg: page_directory
     mov cr3, eax
+
+    ; Clean up frame for the NEW task stack
     pop ebp
-    ret
-    popfd
-    pop edi
-    pop esi
-    pop ebx
-    pop ebp
-    ret
+    ret               ; This returns to the address on the NEW stack
+    ; REMOVED dead code after ret
 
 timer_handler_asm:
     pusha

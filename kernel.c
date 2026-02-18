@@ -103,17 +103,19 @@ void idle_task_code() {
     }
 }
 
+// --- Updated sleep() function ---
 void sleep(uint32_t ms) {
-    // We must use 'volatile' so the compiler doesn't optimize the loop away
-    volatile task_t *task = (task_t*)current_task;
-    task->sleep_ticks = ms / 10;
+    // Ensure we are accessing the current task's ticks
+    // Each timer tick is 10ms (assuming 100Hz frequency)
+    current_task->sleep_ticks = ms / 10;
 
     terminal_writestring("Sleeping...\n");
 
-    while(task->sleep_ticks > 0) {
-        // IMPORTANT: In Ring 3, you CANNOT use 'hlt'
-        // If you don't have syscalls yet, leave this empty to "busy-wait"
-        // This prevents the GPF that causes the hang
+    while(current_task->sleep_ticks > 0) {
+        // IMPORTANT: In User Mode, you CANNOT use 'hlt'.
+        // We busy-wait here. The timer interrupt will still trigger
+        // in Ring 0 and decrement the ticks.
+        __asm__ volatile("pause");
     }
 
     terminal_writestring("Done.\n");
@@ -628,24 +630,22 @@ void process_command() {
                 }
             }
         }
+        // CLEANED UP SLEEP LOGIC: Removed redundant if block and terminal_writestring
         else if (strcmp_simple(cmd, "sleep") == 0) {
             if (arg[0] == '\0') {
                 terminal_writestring("Usage: sleep <ms>\n");
             } else {
-                // Convert string argument to integer
                 uint32_t ms = 0;
                 for(int k = 0; arg[k] != '\0'; k++) {
                     if (arg[k] >= '0' && arg[k] <= '9') {
                         ms = ms * 10 + (arg[k] - '0');
                     }
                 }
-                terminal_writestring("Sleeping...\n");
-                sleep(ms); // Calls the helper using timer_ticks
-                terminal_writestring("Done.\n");
+                // We call sleep(ms) directly; the helper function handles its own printing
+                sleep(ms);
             }
         }
         else if (strcmp_simple(cmd, "uptime") == 0) {
-            extern volatile uint32_t timer_ticks;
             uint32_t seconds = timer_ticks / 100;
             terminal_writestring("System Uptime: ");
             char buf[12];
@@ -802,4 +802,3 @@ void kernel_main(void) {
     // We should never reach this
     while(1) { __asm__ volatile("hlt"); }
 }
-
